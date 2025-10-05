@@ -1,0 +1,103 @@
+# Terraform
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+.terraform/
+.terraform.lock.hcl
+crash.log
+crash.*.log
+
+# Sensitive configuration files
+terraform.tfvars
+*.tfvars
+!terraform.tfvars.example
+
+# Terraform plan files
+*.tfplan
+*.tfplan.*
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.vimrc
+
+# Logs
+*.log
+logs/
+*.log.*
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.backup
+
+# Security and secrets
+secrets/
+.secrets/
+*.key
+*.pem
+*.p12
+*.pfx
+*.crt
+*.cer
+*.der
+*.p7b
+*.p7c
+*.p7s
+*.p8
+*.p8e
+*.p8k
+*.p8m
+*.p8s
+*.p8t
+*.p8u
+*.p8v
+*.p8w
+*.p8x
+*.p8y
+*.p8z
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Backup files
+*.backup
+*.bak
+*.old
+
+# Windows specific
+desktop.ini
+$RECYCLE.BIN/
+
+# MacOS specific
+.AppleDouble
+.LSOverride
+Icon
+
+# Linux specific
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# Terraform specific
+.terraformrc
+terraform.rc
+.terraformrc.json
