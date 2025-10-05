@@ -52,12 +52,22 @@ variable "cloudinit_password" {
   description = "Cloud-init default password"
   type        = string
   sensitive   = true
-  default     = "changeme"
 }
 
 variable "ssh_public_key" {
   description = "SSH public key for cloud-init"
   type        = string
+}
+
+variable "vm_user" {
+  description = "VM user name for cloud-init"
+  type        = string
+}
+
+variable "vm_password" {
+  description = "VM user password for cloud-init"
+  type        = string
+  sensitive   = true
 }
 
 # Environment Configuration
