@@ -25,9 +25,14 @@ resource "proxmox_vm_qemu" "vms" {
   clone       = var.template_name
 
   # VM Configuration
-  memory  = each.value.memory
-  cores   = each.value.cores
-  sockets = 1
+  memory = each.value.memory
+  
+  # CPU Configuration - managed through cpu block
+  cpu {
+    cores   = each.value.cores
+    sockets = 1
+    type    = "host"
+  }
 
   # Network Configuration
   network {
@@ -61,6 +66,10 @@ resource "proxmox_vm_qemu" "vms" {
       clone,
       # VM ID - keep existing VMIDs
       vmid,
+      # CPU configuration - managed by cpu block, not top-level attributes
+      cores,
+      sockets,
+      vcpus,
       # Additional attributes that might cause recreation
       full_clone,
       scsihw,
@@ -69,13 +78,10 @@ resource "proxmox_vm_qemu" "vms" {
       description,
       onboot,
       target_nodes,
-      unused_disk,
       smbios,
       # More attributes to prevent recreation
       boot,
       bootdisk,
-      current_node,
-      linked_vmid,
       numa,
       qemu_os,
       reboot_required,
@@ -83,14 +89,13 @@ resource "proxmox_vm_qemu" "vms" {
       skip_ipv6,
       ssh_host,
       ssh_port,
-      target_node,
-      vcpus,
       vm_state,
       # CPU and memory blocks
       cpu,
       disks
     ]
-    # Allow updates to cores and memory without recreation
+    # Allow updates to memory without recreation
+    # CPU is managed through the cpu block, not top-level cores/sockets
     # Don't prevent destroy - allow controlled updates
   }
 
