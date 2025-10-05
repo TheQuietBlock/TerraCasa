@@ -1,23 +1,11 @@
 #cloud-config
-# Ubuntu Cloud-init configuration for TerraCasa homelab
-
-# System Information
-hostname: ${hostname}
-fqdn: ${hostname}.local
-manage_etc_hosts: true
-
-# Users
 users:
-  - name: ubuntu
-    groups: [adm, audio, cdrom, dialout, dip, floppy, lxd, netdev, plugdev, sudo, video]
-    shell: /bin/bash
-    sudo: ['ALL=(ALL) NOPASSWD:ALL']
-    ssh_authorized_keys:
-      - ${ssh_public_key}
-
-# Package Management
+  - name: ${vm_user}
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    lock_passwd: false
+    passwd: ${vm_password}
+ssh_pwauth: true
 package_update: true
-package_upgrade: true
 packages:
   - curl
   - wget
@@ -27,38 +15,6 @@ packages:
   - net-tools
   - openssh-server
   - ufw
-
-# SSH Configuration
-ssh_pwauth: false
-disable_root: true
-
-# Network Configuration
-network:
-  version: 2
-  ethernets:
-    eth0:
-      dhcp4: false
-      addresses:
-        - ${ip_address}/${subnet_cidr}
-      gateway4: ${gateway}
-      nameservers:
-        addresses:
-          - 8.8.8.8
-          - 8.8.4.4
-          - 1.1.1.1
-
-# Timezone
-timezone: UTC
-
-# Locale
-locale: en_US.UTF-8
-
-# Boot Commands
-bootcmd:
-  - echo 'vm.swappiness=10' >> /etc/sysctl.conf
-  - echo 'vm.vfs_cache_pressure=50' >> /etc/sysctl.conf
-
-# Run Commands
 runcmd:
   - systemctl enable ssh
   - systemctl start ssh
@@ -66,14 +22,4 @@ runcmd:
   - ufw allow ssh
   - ufw allow 25565/tcp comment 'Minecraft Server'
   - ufw allow 25575/tcp comment 'Minecraft RCON'
-  - systemctl restart networking
   - sysctl -p
-
-# Final Message
-final_message: |
-  TerraCasa VM Setup Complete!
-  Hostname: ${hostname}
-  IP Address: ${ip_address}
-  User: ubuntu
-  SSH Key: Configured
-  Firewall: Enabled with Minecraft ports open

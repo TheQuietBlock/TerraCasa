@@ -53,6 +53,32 @@ locals {
       environment    = "production"
       usage          = "gaming"
     }
+    n8n = {
+      name           = "sir-flows-a-lot"
+      vmid           = 115
+      cores          = 2
+      memory         = 2048
+      vlan           = "server"
+      ip_address     = var.vm_ip_addresses["sir-flows-a-lot"]
+      os_type        = "ubuntu"
+      cloudinit_file = "cloudinit/ubuntu-cloudinit.yaml"
+      description    = "Minecraft server (Secondary)"
+      environment    = "production"
+      usage          = "automation"
+    }
+    Traefik = {
+      name           = "port-and-order"
+      vmid           = 120
+      cores          = 2
+      memory         = 2048
+      vlan           = "server"
+      ip_address     = var.vm_ip_addresses["port-and-order"]
+      os_type        = "ubuntu"
+      cloudinit_file = "cloudinit/ubuntu-cloudinit.yaml"
+      description    = "Minecraft server (Secondary)"
+      environment    = "production"
+      usage          = "automation"
+    }
   }
 
   # Common tags
