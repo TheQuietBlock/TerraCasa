@@ -25,9 +25,14 @@ resource "proxmox_vm_qemu" "vms" {
   clone       = var.template_name
 
   # VM Configuration
-  memory  = each.value.memory
-  cores   = each.value.cores
-  sockets = 1
+  memory = each.value.memory
+  
+  # CPU Configuration - managed through cpu block
+  cpu {
+    cores   = each.value.cores
+    sockets = 1
+    type    = "host"
+  }
 
   # Network Configuration
   network {
@@ -61,6 +66,10 @@ resource "proxmox_vm_qemu" "vms" {
       clone,
       # VM ID - keep existing VMIDs
       vmid,
+      # CPU configuration - managed by cpu block, not top-level attributes
+      cores,
+      sockets,
+      vcpus,
       # Additional attributes that might cause recreation
       full_clone,
       scsihw,
