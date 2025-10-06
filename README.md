@@ -62,11 +62,13 @@ All servers are managed in a single configuration with usage-based tagging:
    ```
 
 2. Edit `terraform.tfvars` with your values:
-   - Update Proxmox API URL (e.g., `https://192.168.xx.xx:8006/api2/json`)
-   - Update Proxmox API credentials
-   - Add your SSH public key
-   - Configure network settings
-   - Set VM IP addresses
+   - **Proxmox API URL**: Replace `192.168.xx.xx` with your Proxmox server IP
+   - **Proxmox API credentials**: Replace with your actual token ID and secret
+   - **SSH public key**: Replace with your SSH public key
+   - **Network settings**: Update VLAN configurations with your network ranges
+   - **VM IP addresses**: Set your desired static IPs for each VM
+
+   **Important**: The example file contains placeholder values that must be replaced with your actual network configuration.
 
 ### 3. Deploy Infrastructure
 
@@ -100,6 +102,41 @@ The infrastructure supports multiple VLANs for network segmentation:
 | **sir-flows-a-lot** | `192.168.xx.xx` | automation |
 
 VM IP addresses are configurable through the `vm_ip_addresses` variable in `terraform.tfvars`.
+
+### Configuration Structure
+
+The project uses a two-tier configuration approach:
+
+1. **`variables.tf`**: Defines variable types and provides documentation defaults
+2. **`terraform.tfvars`**: Contains your actual values (gitignored for security)
+
+**Example configuration structure:**
+```hcl
+# VLAN Configurations
+vlan_configs = {
+  home = {
+    vlan_id     = 50
+    subnet      = "192.168.xx.0/24"
+    subnet_cidr = "24"
+    gateway     = "192.168.xx.1"
+    description = "Home network"
+  }
+  server = {
+    vlan_id     = 55
+    subnet      = "192.168.xx.0/24"
+    subnet_cidr = "24"
+    gateway     = "192.168.xx.1"
+    description = "Server network"
+  }
+}
+
+# VM IP Addresses
+vm_ip_addresses = {
+  "prox-n-roll"           = "192.168.xx.10"
+  "resolver-of-truth"     = "192.168.xx.53"
+  # ... more VMs
+}
+```
 
 ## Cloud-init Configuration
 

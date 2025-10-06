@@ -1,0 +1,51 @@
+# TerraCasa Homelab Configuration Example
+# Copy this file to terraform.tfvars and update with your values
+
+# Environment Configuration
+environment = "production"  # or "acceptance"
+
+# Proxmox Configuration
+proxmox_api_url      = "https://192.168.xx.xx:8006/api2/json"  # Replace with your Proxmox IP
+proxmox_token_id     = "root@pam!terraform"                    # Replace with your token ID
+proxmox_token_secret = "your-token-secret-here"                # Replace with your token secret
+proxmox_tls_insecure = true
+proxmox_node         = "proxmox"                               # Replace with your node name
+
+# Template and Storage
+template_name = "ubuntu-cloudinit-template"                    # Replace with your template name
+storage_name  = "storage"                                      # Replace with your storage name
+
+# Cloud-init Configuration
+vm_user            = "your-username"                          # Replace with your username
+vm_password        = "your-secure-password"                   # Replace with your password
+ssh_public_key     = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAI..." # Replace with your SSH key
+
+# VLAN Configurations
+# Define your network segments here
+vlan_configs = {
+  home = {
+    vlan_id     = 50
+    subnet      = "192.168.xx.0/24"    # Replace with your home network
+    subnet_cidr = "24"
+    gateway     = "192.168.xx.1"       # Replace with your home gateway
+    description = "Home network"
+  }
+  server = {
+    vlan_id     = 55
+    subnet      = "192.168.xx.0/24"    # Replace with your server network
+    subnet_cidr = "24"
+    gateway     = "192.168.xx.1"       # Replace with your server gateway
+    description = "Server network"
+  }
+}
+
+# VM IP Addresses
+# Assign static IPs to your VMs
+vm_ip_addresses = {
+  "prox-n-roll"           = "192.168.xx.10"  # Replace with your desired IP
+  "resolver-of-truth"     = "192.168.xx.53"  # Replace with your desired IP
+  "minecraft-java-srv001" = "192.168.xx.50"  # Replace with your desired IP
+  "minecraft-java-srv002" = "192.168.xx.51"  # Replace with your desired IP
+  "port-and-order"        = "192.168.xx.80"  # Replace with your desired IP
+  "sir-flows-a-lot"       = "192.168.xx.85"  # Replace with your desired IP
+}
