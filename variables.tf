@@ -2,7 +2,6 @@
 variable "proxmox_api_url" {
   description = "Proxmox API URL"
   type        = string
-  default     = "https://192.168.55.5:8006/api2/json"
 }
 
 variable "proxmox_token_id" {
@@ -76,34 +75,10 @@ variable "vlan_configs" {
     gateway     = string
     description = string
   }))
-  default = {
-    home = {
-      vlan_id     = 50
-      subnet      = "192.168.50.0/24"
-      subnet_cidr = "24"
-      gateway     = "192.168.50.1"
-      description = "Home network"
-    }
-    server = {
-      vlan_id     = 55
-      subnet      = "192.168.55.0/24"
-      subnet_cidr = "24"
-      gateway     = "192.168.55.1"
-      description = "Server network"
-    }
-  }
 }
 
 # VM IP Addresses
 variable "vm_ip_addresses" {
   description = "IP addresses for VMs"
   type = map(string)
-  default = {
-    "prox-n-roll"           = "192.168.55.10"
-    "resolver-of-truth"     = "192.168.55.53"
-    "minecraft-java-srv001" = "192.168.55.50"
-    "minecraft-java-srv002" = "192.168.55.51"
-    "port-and-order"        = "192.168.55.80"
-    "sir-flows-a-lot"       = "192.168.55.85"
-  }
 }

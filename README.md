@@ -20,12 +20,14 @@ TerraCasa/
 
 All servers are managed in a single configuration with usage-based tagging:
 
-| Server | VM ID | Usage | Description |
-|--------|-------|-------|-------------|
-| **prox-n-roll** | 100 | automation | Automation server |
-| **resolver-of-truth** | 101 | dns | DNS resolver server |
-| **minecraft-java-srv001** | 110 | gaming | Minecraft server (Primary) |
-| **minecraft-java-srv002** | 111 | gaming | Minecraft server (Secondary) |
+| Server | VM ID | IP Address | Usage | Description |
+|--------|-------|------------|-------|-------------|
+| **prox-n-roll** | 100 | `192.168.xx.xx` | automation | Automation server |
+| **resolver-of-truth** | 101 | `192.168.xx.xx` | dns | DNS resolver server |
+| **minecraft-java-srv001** | 110 | `192.168.xx.xx` | gaming | Minecraft server (Primary) |
+| **minecraft-java-srv002** | 111 | `192.168.xx.xx` | gaming | Minecraft server (Secondary) |
+| **port-and-order** | 120 | `192.168.xx.xx` | automation | Traefik reverse proxy |
+| **sir-flows-a-lot** | 115 | `192.168.xx.xx` | automation | n8n automation server |
 
 ### Usage Tags
 
@@ -60,6 +62,7 @@ All servers are managed in a single configuration with usage-based tagging:
    ```
 
 2. Edit `terraform.tfvars` with your values:
+   - Update Proxmox API URL (e.g., `https://192.168.xx.xx:8006/api2/json`)
    - Update Proxmox API credentials
    - Add your SSH public key
    - Configure network settings
@@ -82,8 +85,19 @@ terraform apply
 
 The infrastructure supports multiple VLANs for network segmentation:
 
-- **Home Network**: General purpose network
-- **Server Network**: Infrastructure and services
+- **Home Network**: `192.168.xx.xx/24` - General purpose network
+- **Server Network**: `192.168.xx.xx/24` - Infrastructure and services
+
+### VM IP Addresses
+
+| Server | IP Address | Usage |
+|--------|------------|-------|
+| **prox-n-roll** | `192.168.xx.xx` | automation |
+| **resolver-of-truth** | `192.168.xx.xx` | dns |
+| **minecraft-java-srv001** | `192.168.xx.xx` | gaming |
+| **minecraft-java-srv002** | `192.168.xx.xx` | gaming |
+| **port-and-order** | `192.168.xx.xx` | automation |
+| **sir-flows-a-lot** | `192.168.xx.xx` | automation |
 
 VM IP addresses are configurable through the `vm_ip_addresses` variable in `terraform.tfvars`.
 
