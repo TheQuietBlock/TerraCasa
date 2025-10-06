@@ -38,21 +38,10 @@ variable "template_name" {
 variable "storage_name" {
   description = "Storage name for VM disks"
   type        = string
-  default     = "local-lvm"
+  default     = "storage"
 }
 
 # Cloud-init Configuration
-variable "cloudinit_user" {
-  description = "Cloud-init default user"
-  type        = string
-  default     = "ubuntu"
-}
-
-variable "cloudinit_password" {
-  description = "Cloud-init default password"
-  type        = string
-  sensitive   = true
-}
 
 variable "ssh_public_key" {
   description = "SSH public key for cloud-init"
@@ -114,5 +103,7 @@ variable "vm_ip_addresses" {
     "resolver-of-truth"     = "192.168.55.53"
     "minecraft-java-srv001" = "192.168.55.50"
     "minecraft-java-srv002" = "192.168.55.51"
+    "port-and-order"        = "192.168.55.80"
+    "sir-flows-a-lot"       = "192.168.55.85"
   }
 }

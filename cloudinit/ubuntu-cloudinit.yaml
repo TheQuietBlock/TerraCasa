@@ -1,9 +1,9 @@
 #cloud-config
 users:
-  - name: ${vm_user}
+  - name: patrick
     sudo: ALL=(ALL) NOPASSWD:ALL
     lock_passwd: false
-    passwd: ${vm_password}
+    # Password will be set via cipassword parameter
 ssh_pwauth: true
 package_update: true
 packages:
@@ -20,6 +20,4 @@ runcmd:
   - systemctl start ssh
   - ufw --force enable
   - ufw allow ssh
-  - ufw allow 25565/tcp comment 'Minecraft Server'
-  - ufw allow 25575/tcp comment 'Minecraft RCON'
   - sysctl -p
