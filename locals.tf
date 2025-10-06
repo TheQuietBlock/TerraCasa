@@ -9,7 +9,6 @@ locals {
       vlan           = "server"
       ip_address     = var.vm_ip_addresses["prox-n-roll"]
       os_type        = "ubuntu"
-      cloudinit_file = "cloudinit/ubuntu-cloudinit.yaml"
       description    = "Automation server"
       environment    = "production"
       usage          = "automation"
@@ -22,7 +21,6 @@ locals {
       vlan           = "server"
       ip_address     = var.vm_ip_addresses["resolver-of-truth"]
       os_type        = "ubuntu"
-      cloudinit_file = "cloudinit/ubuntu-cloudinit.yaml"
       description    = "DNS resolver server"
       environment    = "production"
       usage          = "dns"
@@ -35,7 +33,6 @@ locals {
       vlan           = "server"
       ip_address     = var.vm_ip_addresses["minecraft-java-srv001"]
       os_type        = "ubuntu"
-      cloudinit_file = "cloudinit/ubuntu-cloudinit.yaml"
       description    = "Minecraft server (Primary)"
       environment    = "production"
       usage          = "gaming"
@@ -48,7 +45,6 @@ locals {
       vlan           = "server"
       ip_address     = var.vm_ip_addresses["minecraft-java-srv002"]
       os_type        = "ubuntu"
-      cloudinit_file = "cloudinit/ubuntu-cloudinit.yaml"
       description    = "Minecraft server (Secondary)"
       environment    = "production"
       usage          = "gaming"
@@ -61,8 +57,7 @@ locals {
       vlan           = "server"
       ip_address     = var.vm_ip_addresses["sir-flows-a-lot"]
       os_type        = "ubuntu"
-      cloudinit_file = "cloudinit/ubuntu-cloudinit.yaml"
-      description    = "Minecraft server (Secondary)"
+      description    = "n8n automation server"
       environment    = "production"
       usage          = "automation"
     }
@@ -74,8 +69,7 @@ locals {
       vlan           = "server"
       ip_address     = var.vm_ip_addresses["port-and-order"]
       os_type        = "ubuntu"
-      cloudinit_file = "cloudinit/ubuntu-cloudinit.yaml"
-      description    = "Minecraft server (Secondary)"
+      description    = "Traefik reverse proxy"
       environment    = "production"
       usage          = "automation"
     }

@@ -27,28 +27,65 @@ resource "proxmox_vm_qemu" "vms" {
   # VM Configuration
   memory = each.value.memory
   
-  # CPU Configuration - managed through cpu block
+  # SeaBIOS Configuration (matches template)
+  bios = "seabios"
+  machine = "pc-i440fx-6.1"
+  
+  # CPU Configuration
   cpu {
     cores   = each.value.cores
     sockets = 1
     type    = "host"
   }
 
-  # Network Configuration
+  # Disk Configuration - Primary disk on SCSI
+  disk {
+    slot         = "scsi0"
+    type         = "disk"
+    storage      = var.storage_name
+    size         = "32G"
+    iothread     = true
+    discard      = true
+  }
+
+  # Cloud-init drive on IDE2
+  disk {
+    slot    = "ide2"
+    type    = "cloudinit"
+    storage = var.storage_name
+  }
+
+  # EFI Disk for OVMF - will be created automatically with OVMF
+
+  # Network Configuration - no VLAN tag for server network (VLAN 55)
   network {
     id     = 0
     model  = "virtio"
     bridge = "vmbr0"
-    tag    = 0  # Match existing VMs (no VLAN tag)
+    # No tag needed for VLAN 55 (server network)
   }
 
   # Cloud-init Configuration
   ciuser     = var.vm_user
   cipassword = var.vm_password
   sshkeys    = var.ssh_public_key
+  ciupgrade  = true
 
-  # IP Configuration
+  # IP Configuration - Use static IP from configuration
   ipconfig0 = "ip=${each.value.ip_address}/${var.vlan_configs[each.value.vlan].subnet_cidr},gw=${var.vlan_configs[each.value.vlan].gateway}"
+
+  # Boot order: SCSI disk first, then cloud-init, then network
+  boot = "order=scsi0;ide2;net0"
+
+  # Agent for better integration
+  agent = 1
+  agent_timeout = 30
+
+  # SCSI Controller
+  scsihw = "virtio-scsi-pci"
+  
+  # Timeout configuration
+  clone_wait = 30
 
   # Lifecycle - Safe updates for existing VMs
   lifecycle {
@@ -66,10 +103,6 @@ resource "proxmox_vm_qemu" "vms" {
       clone,
       # VM ID - keep existing VMIDs
       vmid,
-      # CPU configuration - managed by cpu block, not top-level attributes
-      cores,
-      sockets,
-      vcpus,
       # Additional attributes that might cause recreation
       full_clone,
       scsihw,
@@ -78,7 +111,6 @@ resource "proxmox_vm_qemu" "vms" {
       description,
       onboot,
       target_nodes,
-      unused_disk,
       smbios,
       # More attributes to prevent recreation
       boot,
@@ -93,11 +125,13 @@ resource "proxmox_vm_qemu" "vms" {
       ssh_host,
       ssh_port,
       target_node,
-      vcpus,
       vm_state,
       # CPU and memory blocks
       cpu,
-      disks
+      disks,
+      # BIOS settings
+      bios,
+      machine
     ]
     # Allow updates to cores and memory without recreation
     # Don't prevent destroy - allow controlled updates
