@@ -1,23 +1,315 @@
 #cloud-config
-users:
-  - name: patrick
-    sudo: ALL=(ALL) NOPASSWD:ALL
-    lock_passwd: false
-    # Password will be set via cipassword parameter
-ssh_pwauth: true
+hostname: ${HOSTNAME:-secure-node}
+manage_etc_hosts: true
+timezone: Europe/Amsterdam
+
+apt:
+  preserve_sources_list: false
+  primary:
+    - arches: [default]
+      uri: http://archive.ubuntu.com/ubuntu/
 package_update: true
+package_upgrade: true
+package_reboot_if_required: true
 packages:
+  - auditd
+  - aide
+  - unattended-upgrades
+  - apt-listchanges
+  - ufw
+  - fail2ban
+  - libpam-pwquality
+  - net-tools
   - curl
   - wget
+  - gnupg
+  - vim
+  - needrestart
   - git
   - htop
-  - vim
-  - net-tools
   - openssh-server
-  - ufw
+
+# Optional. Remove snaps on servers.
+snap:
+  commands:
+    - [remove, --purge, lxd]
+    - [remove, --purge, core20]
+    - [remove, --purge, snapd]
+
+users:
+  - name: patrick
+    gecos: Homelab Admin
+    shell: /bin/bash
+    sudo: [ "ALL=(ALL) NOPASSWD:ALL" ]  # tighten to your needs
+    lock_passwd: false
+    # Password will be set via cipassword parameter
+    ssh_authorized_keys:
+      - ${ssh_public_key}
+  - name: ci-ops
+    gecos: CI Helper
+    groups: [adm]
+    shell: /usr/sbin/nologin
+    lock_passwd: true
+ssh_deletekeys: false
+disable_root: true
+ssh_pwauth: false  # Disable password auth for security
+
+# SSH hardening
+write_files:
+  - path: /etc/ssh/sshd_config.d/10-cis.conf
+    owner: root:root
+    permissions: '0640'
+    content: |
+      Protocol 2
+      PermitRootLogin no
+      PasswordAuthentication no
+      ChallengeResponseAuthentication no
+      KbdInteractiveAuthentication no
+      PubkeyAuthentication yes
+      HostbasedAuthentication no
+      PermitEmptyPasswords no
+      IgnoreRhosts yes
+      X11Forwarding no
+      AllowAgentForwarding no
+      AllowTcpForwarding no
+      AllowUsers patrick
+      MaxAuthTries 3
+      MaxSessions 5
+      LoginGraceTime 20
+      ClientAliveInterval 300
+      ClientAliveCountMax 0
+      LogLevel VERBOSE
+      UsePAM yes
+      AuthenticationMethods publickey
+      Ciphers chacha20-poly1305@openssh.com,aes256-gcm@openssh.com
+      MACs hmac-sha2-512-etm@openssh.com,hmac-sha2-256-etm@openssh.com
+      KexAlgorithms curve25519-sha256,curve25519-sha256@libssh.org
+  - path: /etc/pam.d/common-password
+    owner: root:root
+    permissions: '0644'
+    content: |
+      password  requisite     pam_pwquality.so retry=3 minlen=12 ucredit=-1 lcredit=-1 dcredit=-1 ocredit=-1 difok=4 enforce_for_root
+      password  [success=1 default=ignore]  pam_unix.so obscure use_authtok try_first_pass sha512 rounds=500000
+      password  requisite     pam_pwhistory.so use_authtok remember=10 retry=3
+  - path: /etc/login.defs
+    owner: root:root
+    permissions: '0644'
+    content: |
+      PASS_MAX_DAYS   365
+      PASS_MIN_DAYS   1
+      PASS_MIN_LEN    12
+      PASS_WARN_AGE   14
+      UMASK           027
+  - path: /etc/sudoers.d/10-logging
+    owner: root:root
+    permissions: '0440'
+    content: |
+      Defaults use_pty
+      Defaults logfile="/var/log/sudo.log"
+      Defaults log_input,log_output
+  - path: /etc/motd
+    owner: root:root
+    permissions: '0644'
+    content: |
+      Authorized use only. Activity may be monitored and logged.
+  - path: /etc/issue
+    owner: root:root
+    permissions: '0644'
+    content: |
+      Authorized use only.
+  - path: /etc/issue.net
+    owner: root:root
+    permissions: '0644'
+    content: |
+      Authorized use only.
+  - path: /etc/sysctl.d/60-cis-hardening.conf
+    owner: root:root
+    permissions: '0644'
+    content: |
+      kernel.kptr_restrict=2
+      kernel.yama.ptrace_scope=1
+      kernel.dmesg_restrict=1
+      kernel.kexec_load_disabled=1
+      kernel.unprivileged_bpf_disabled=1
+      net.ipv4.conf.all.rp_filter=1
+      net.ipv4.conf.default.rp_filter=1
+      net.ipv4.conf.all.accept_redirects=0
+      net.ipv4.conf.default.accept_redirects=0
+      net.ipv4.conf.all.send_redirects=0
+      net.ipv4.conf.default.send_redirects=0
+      net.ipv4.conf.all.accept_source_route=0
+      net.ipv4.conf.default.accept_source_route=0
+      net.ipv4.icmp_echo_ignore_broadcasts=1
+      net.ipv4.icmp_ignore_bogus_error_responses=1
+      net.ipv4.tcp_syncookies=1
+      net.ipv4.conf.all.log_martians=1
+      net.ipv4.conf.default.log_martians=1
+      net.ipv6.conf.all.accept_ra=0
+      net.ipv6.conf.default.accept_ra=0
+      net.ipv6.conf.all.accept_redirects=0
+      net.ipv6.conf.default.accept_redirects=0
+      kernel.randomize_va_space=2
+      fs.protected_hardlinks=1
+      fs.protected_symlinks=1
+      fs.suid_dumpable=0
+  - path: /etc/modprobe.d/blacklist-cis.conf
+    owner: root:root
+    permissions: '0644'
+    content: |
+      install cramfs /bin/true
+      install freevxfs /bin/true
+      install jffs2 /bin/true
+      install hfs /bin/true
+      install hfsplus /bin/true
+      install udf /bin/true
+      install dccp /bin/true
+      install sctp /bin/true
+      install rds /bin/true
+      install tipc /bin/true
+      install n-hdlc /bin/true
+      install ax25 /bin/true
+      install netrom /bin/true
+      install x25 /bin/true
+      install rose /bin/true
+      install decnet /bin/true
+      install econet /bin/true
+      install af_802154 /bin/true
+      install appletalk /bin/true
+      install ipx /bin/true
+      install bluetooth /bin/true
+  - path: /etc/security/limits.d/10-nproc.conf
+    owner: root:root
+    permissions: '0644'
+    content: |
+      * hard nproc 65536
+      * soft nproc 65536
+  - path: /etc/audit/rules.d/10-cis-base.rules
+    owner: root:root
+    permissions: '0640'
+    content: |
+      ## Persist audit
+      -D
+      -b 8192
+      ## Time changes
+      -a always,exit -F arch=b64 -S adjtimex,settimeofday,clock_settime -k time-change
+      -w /etc/localtime -p wa -k time-change
+      ## Identity
+      -w /etc/group -p wa -k identity
+      -w /etc/passwd -p wa -k identity
+      -w /etc/gshadow -p wa -k identity
+      -w /etc/shadow -p wa -k identity
+      -w /etc/security/opasswd -p wa -k identity
+      ## Network env
+      -a always,exit -F arch=b64 -S sethostname,setdomainname -k system-locale
+      -w /etc/issue -p wa -k system-locale
+      -w /etc/issue.net -p wa -k system-locale
+      -w /etc/hosts -p wa -k system-locale
+      -w /etc/network/ -p wa -k system-locale
+      ## MAC policy
+      -w /etc/apparmor/ -p wa -k MAC-policy
+      ## Privilege changes and sudo
+      -w /var/log/sudo.log -p wa -k sudo
+      -a always,exit -F arch=b64 -S setresuid,setresgid,setuid,setgid -k priv
+      ## Modules
+      -w /sbin/insmod -p x -k modules
+      -w /sbin/rmmod -p x -k modules
+      -w /sbin/modprobe -p x -k modules
+      -a always,exit -F arch=b64 -S init_module,delete_module -k modules
+      ## Immutable at end
+      -e 2
+  - path: /etc/fail2ban/jail.d/sshd.local
+    owner: root:root
+    permissions: '0644'
+    content: |
+      [sshd]
+      enabled = true
+      mode = aggressive
+      port = 22
+      filter = sshd
+      logpath = %(sshd_log)s
+      maxretry = 3
+      bantime = 1h
+      findtime = 10m
+      ignoreip = 127.0.0.1/8 ::1 192.168.50.0/24 192.168.55.0/24
+  - path: /etc/ufw/applications.d/ssh-hardened
+    owner: root:root
+    permissions: '0644'
+    content: |
+      [SSH-hardened]
+      title=SSH hardened
+      description=SSH with minimal surface
+      ports=22/tcp
+  - path: /etc/ufw/ufw.conf
+    owner: root:root
+    permissions: '0644'
+    content: |
+      ENABLED=yes
+  - path: /etc/apt/apt.conf.d/50unattended-upgrades
+    owner: root:root
+    permissions: '0644'
+    content: |
+      Unattended-Upgrade::Origins-Pattern {
+        "o=Ubuntu,a=${distro_codename}-security";
+        "o=UbuntuESMApps,a=${distro_codename}-apps-security";
+        "o=UbuntuESM,a=${distro_codename}-infra-security";
+      };
+      Unattended-Upgrade::Automatic-Reboot "true";
+      Unattended-Upgrade::Automatic-Reboot-Time "03:30";
+      Unattended-Upgrade::Remove-Unused-Dependencies "true";
+      Unattended-Upgrade::OnlyOnACPower "false";
+      Unattended-Upgrade::MinimalSteps "true";
+  - path: /etc/systemd/timesyncd.conf.d/10-homelab.conf
+    owner: root:root
+    permissions: '0644'
+    content: |
+      [Time]
+      NTP=pool.ntp.org
+      FallbackNTP=pool.ntp.org
+  - path: /etc/default/grub
+    owner: root:root
+    permissions: '0644'
+    content: |
+      GRUB_DEFAULT=0
+      GRUB_TIMEOUT=2
+      GRUB_DISTRIBUTOR=`lsb_release -i -s 2> /dev/null || echo Debian`
+      GRUB_CMDLINE_LINUX_DEFAULT="quiet mitigations=auto apparmor=1 security=apparmor"
+      GRUB_CMDLINE_LINUX=""
+  - path: /etc/aide/aide.conf.d/10-basic.conf
+    owner: root:root
+    permissions: '0644'
+    content: |
+      @@define DBDIR /var/lib/aide
+      database=file:@@{DBDIR}/aide.db.gz
+      database_out=file:@@{DBDIR}/aide.db.new.gz
+
+# UFW default policy and common homelab allowances
+bootcmd:
+  - sysctl --system
+  - ufw --force reset
+  - ufw default deny incoming
+  - ufw default allow outgoing
+  - ufw allow from 192.168.50.0/24 to any port 22 proto tcp comment 'Mgmt VLAN SSH'
+  - ufw allow 53 proto udp comment 'DNS if this node provides it'
+  - ufw allow 123 proto udp comment 'NTP sync'
+  - ufw allow 9100/tcp comment 'Node exporter optional'
+  - ufw --force enable
+
+# Initialize AIDE and enable services
 runcmd:
+  - systemctl disable --now snapd.seeded.service || true
+  - apt-get purge -y snapd || true
+  - update-grub || true
+  - systemctl daemon-reload
+  - systemctl restart systemd-timesyncd
+  - systemctl enable --now auditd
+  - augenrules --load || true
+  - aideinit || true
+  - mv /var/lib/aide/aide.db.new.gz /var/lib/aide/aide.db.gz || true
+  - systemctl enable --now fail2ban
   - systemctl enable ssh
   - systemctl start ssh
-  - ufw --force enable
-  - ufw allow ssh
-  - sysctl -p
+  - systemctl restart ssh
+  - needrestart -r a || true
+
+final_message: |
+  CIS-style baseline applied. Check ssh access with your key before closing the old session.
