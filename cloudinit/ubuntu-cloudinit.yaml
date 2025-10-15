@@ -1,5 +1,5 @@
 #cloud-config
-hostname: ${HOSTNAME:-secure-node}
+hostname: ${hostname}
 manage_etc_hosts: true
 timezone: Europe/Amsterdam
 
@@ -37,20 +37,14 @@ snap:
     - [remove, --purge, snapd]
 
 users:
-  - name: patrick
-    gecos: Homelab Admin
+  - name: ${vm_user}
+    gecos: Secure Administrator
     shell: /bin/bash
-    sudo: [ "ALL=(ALL) NOPASSWD:ALL" ]  # tighten to your needs
+    sudo: [ "ALL=(ALL) NOPASSWD:ALL" ]
     lock_passwd: false
     # Password will be set via cipassword parameter
     ssh_authorized_keys:
       - ${ssh_public_key}
-  - name: ci-ops
-    gecos: CI Helper
-    groups: [adm]
-    shell: /usr/sbin/nologin
-    lock_passwd: true
-ssh_deletekeys: false
 disable_root: true
 ssh_pwauth: false  # Disable password auth for security
 
@@ -72,7 +66,7 @@ write_files:
       X11Forwarding no
       AllowAgentForwarding no
       AllowTcpForwarding no
-      AllowUsers patrick
+      AllowUsers ${vm_user}
       MaxAuthTries 3
       MaxSessions 5
       LoginGraceTime 20
@@ -230,7 +224,7 @@ write_files:
       maxretry = 3
       bantime = 1h
       findtime = 10m
-      ignoreip = 127.0.0.1/8 ::1 192.168.50.0/24 192.168.55.0/24
+      ignoreip = 127.0.0.1/8 ::1%{ if length(management_networks) > 0 } ${join(" ", management_networks)}%{ endif }
   - path: /etc/ufw/applications.d/ssh-hardened
     owner: root:root
     permissions: '0644'
@@ -249,9 +243,9 @@ write_files:
     permissions: '0644'
     content: |
       Unattended-Upgrade::Origins-Pattern {
-        "o=Ubuntu,a=${distro_codename}-security";
-        "o=UbuntuESMApps,a=${distro_codename}-apps-security";
-        "o=UbuntuESM,a=${distro_codename}-infra-security";
+        "o=Ubuntu,a=$${distro_codename}-security";
+        "o=UbuntuESMApps,a=$${distro_codename}-apps-security";
+        "o=UbuntuESM,a=$${distro_codename}-infra-security";
       };
       Unattended-Upgrade::Automatic-Reboot "true";
       Unattended-Upgrade::Automatic-Reboot-Time "03:30";
@@ -288,7 +282,9 @@ bootcmd:
   - ufw --force reset
   - ufw default deny incoming
   - ufw default allow outgoing
-  - ufw allow from 192.168.50.0/24 to any port 22 proto tcp comment 'Mgmt VLAN SSH'
+%{ for network in management_networks ~}
+  - ufw allow from ${network} to any port 22 proto tcp comment 'Management SSH access'
+%{ endfor ~}
   - ufw allow 53 proto udp comment 'DNS if this node provides it'
   - ufw allow 123 proto udp comment 'NTP sync'
   - ufw allow 9100/tcp comment 'Node exporter optional'

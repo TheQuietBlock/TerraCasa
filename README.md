@@ -145,6 +145,9 @@ The `cloudinit/ubuntu-cloudinit.yaml` template configures:
 - Firewall rules
 - System optimization
 - Network configuration
+- Dynamic management network allow-lists based on `management_networks`
+
+Update `management_networks` in your `terraform.tfvars` file to list the CIDR blocks that should be allowed to reach SSH and bypass Fail2ban throttling. When left empty the VM will only trust localhost by default.
 
 ## Terraform Commands
 
@@ -193,7 +196,6 @@ automation = {
   vlan           = "server"
   ip_address     = var.vm_ip_addresses["server-name"]
   os_type        = "ubuntu"
-  cloudinit_file = "cloudinit/ubuntu-cloudinit.yaml"
   description    = "Server description"
   environment    = "production"
   usage          = "automation"  # Usage tag
