@@ -70,6 +70,12 @@ resource "proxmox_vm_qemu" "vms" {
   cipassword = var.vm_password
   sshkeys    = var.ssh_public_key
   ciupgrade  = true
+  
+  # Custom cloud-init configuration
+  cicustom = "user=local:snippets/ubuntu-cloudinit.yaml"
+  
+  # Alternative: Use cloudinit data directly
+  # cloudinit_custom = file("${path.module}/cloudinit/ubuntu-cloudinit.yaml")
 
   # IP Configuration - Use static IP from configuration
   ipconfig0 = "ip=${each.value.ip_address}/${var.vlan_configs[each.value.vlan].subnet_cidr},gw=${var.vlan_configs[each.value.vlan].gateway}"
