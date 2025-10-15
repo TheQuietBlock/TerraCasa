@@ -26,11 +26,11 @@ resource "proxmox_vm_qemu" "vms" {
 
   # VM Configuration
   memory = each.value.memory
-  
+
   # SeaBIOS Configuration (matches template)
-  bios = "seabios"
+  bios    = "seabios"
   machine = "pc-i440fx-6.1"
-  
+
   # CPU Configuration
   cpu {
     cores   = each.value.cores
@@ -40,12 +40,12 @@ resource "proxmox_vm_qemu" "vms" {
 
   # Disk Configuration - Primary disk on SCSI
   disk {
-    slot         = "scsi0"
-    type         = "disk"
-    storage      = var.storage_name
-    size         = "32G"
-    iothread     = true
-    discard      = true
+    slot     = "scsi0"
+    type     = "disk"
+    storage  = var.storage_name
+    size     = "32G"
+    iothread = true
+    discard  = true
   }
 
   # Cloud-init drive on IDE2
@@ -70,12 +70,14 @@ resource "proxmox_vm_qemu" "vms" {
   cipassword = var.vm_password
   sshkeys    = var.ssh_public_key
   ciupgrade  = true
-  
-  # Custom cloud-init configuration
-  cicustom = "user=local:snippets/ubuntu-cloudinit.yaml"
-  
-  # Alternative: Use cloudinit data directly
-  # cloudinit_custom = file("${path.module}/cloudinit/ubuntu-cloudinit.yaml")
+
+  # Custom cloud-init configuration rendered from template
+  cloudinit_custom = templatefile("${path.module}/cloudinit/ubuntu-cloudinit.yaml", {
+    hostname            = each.value.name
+    vm_user             = var.vm_user
+    ssh_public_key      = var.ssh_public_key
+    management_networks = var.management_networks
+  })
 
   # IP Configuration - Use static IP from configuration
   ipconfig0 = "ip=${each.value.ip_address}/${var.vlan_configs[each.value.vlan].subnet_cidr},gw=${var.vlan_configs[each.value.vlan].gateway}"
@@ -84,12 +86,12 @@ resource "proxmox_vm_qemu" "vms" {
   boot = "order=scsi0;ide2;net0"
 
   # Agent for better integration
-  agent = 1
+  agent         = 1
   agent_timeout = 30
 
   # SCSI Controller
   scsihw = "virtio-scsi-pci"
-  
+
   # Timeout configuration
   clone_wait = 30
 

@@ -20,6 +20,11 @@ vm_user            = "your-username"                          # Replace with you
 vm_password        = "your-secure-password"                   # Replace with your password
 ssh_public_key     = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAI..." # Replace with your SSH key
 
+# Allow SSH management access from these networks
+management_networks = [
+  "192.168.xx.0/24"  # Replace with your management network(s)
+]
+
 # VLAN Configurations
 # Define your network segments here
 vlan_configs = {

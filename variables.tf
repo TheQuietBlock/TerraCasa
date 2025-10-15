@@ -58,6 +58,12 @@ variable "vm_password" {
   sensitive   = true
 }
 
+variable "management_networks" {
+  description = "CIDR blocks that require administrative SSH access"
+  type        = list(string)
+  default     = []
+}
+
 # Environment Configuration
 variable "environment" {
   description = "Environment name"
@@ -97,7 +103,7 @@ variable "vlan_configs" {
 # VM IP Addresses
 variable "vm_ip_addresses" {
   description = "IP addresses for VMs"
-  type = map(string)
+  type        = map(string)
   default = {
     # Example structure - replace with your actual values in terraform.tfvars
     "prox-n-roll"           = "192.168.xx.10"
