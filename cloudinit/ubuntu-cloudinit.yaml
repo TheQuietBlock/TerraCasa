@@ -4,10 +4,10 @@ manage_etc_hosts: true
 timezone: Europe/Amsterdam
 
 apt:
-  preserve_sources_list: false
+  preserve_sources_list: true
   primary:
     - arches: [default]
-      uri: http://archive.ubuntu.com/ubuntu/
+      uri: https://archive.ubuntu.com/ubuntu/
 package_update: true
 package_upgrade: true
 package_reboot_if_required: true
@@ -42,11 +42,19 @@ users:
     shell: /bin/bash
     sudo: [ "ALL=(ALL) NOPASSWD:ALL" ]
     lock_passwd: false
-    # Password will be set via cipassword parameter
+    plain_text_passwd: ${vm_password}
+%{ if length(trimspace(ssh_public_key)) > 0 ~}
     ssh_authorized_keys:
       - ${ssh_public_key}
+%{ endif ~}
 disable_root: true
-ssh_pwauth: false  # Disable password auth for security
+ssh_pwauth: true
+chpasswd:
+  expire: false
+  users:
+    - name: ${vm_user}
+      password: ${vm_password}
+      type: text
 
 # SSH hardening
 write_files:
@@ -56,7 +64,7 @@ write_files:
     content: |
       Protocol 2
       PermitRootLogin no
-      PasswordAuthentication no
+      PasswordAuthentication yes
       ChallengeResponseAuthentication no
       KbdInteractiveAuthentication no
       PubkeyAuthentication yes
@@ -74,17 +82,10 @@ write_files:
       ClientAliveCountMax 0
       LogLevel VERBOSE
       UsePAM yes
-      AuthenticationMethods publickey
+      AuthenticationMethods any
       Ciphers chacha20-poly1305@openssh.com,aes256-gcm@openssh.com
       MACs hmac-sha2-512-etm@openssh.com,hmac-sha2-256-etm@openssh.com
       KexAlgorithms curve25519-sha256,curve25519-sha256@libssh.org
-  - path: /etc/pam.d/common-password
-    owner: root:root
-    permissions: '0644'
-    content: |
-      password  requisite     pam_pwquality.so retry=3 minlen=12 ucredit=-1 lcredit=-1 dcredit=-1 ocredit=-1 difok=4 enforce_for_root
-      password  [success=1 default=ignore]  pam_unix.so obscure use_authtok try_first_pass sha512 rounds=500000
-      password  requisite     pam_pwhistory.so use_authtok remember=10 retry=3
   - path: /etc/login.defs
     owner: root:root
     permissions: '0644'
@@ -257,8 +258,8 @@ write_files:
     permissions: '0644'
     content: |
       [Time]
-      NTP=pool.ntp.org
-      FallbackNTP=pool.ntp.org
+      NTP=0.ubuntu.pool.ntp.org 1.ubuntu.pool.ntp.org
+      FallbackNTP=2.ubuntu.pool.ntp.org 3.ubuntu.pool.ntp.org
   - path: /etc/default/grub
     owner: root:root
     permissions: '0644'
@@ -276,9 +277,13 @@ write_files:
       database=file:@@{DBDIR}/aide.db.gz
       database_out=file:@@{DBDIR}/aide.db.new.gz
 
-# UFW default policy and common homelab allowances
 bootcmd:
   - sysctl --system
+
+# Initialize AIDE, configure UFW, and enable services
+runcmd:
+  - echo '${vm_user}:${vm_password}' | chpasswd
+  - passwd -u '${vm_user}' || true
   - ufw --force reset
   - ufw default deny incoming
   - ufw default allow outgoing
@@ -287,11 +292,20 @@ bootcmd:
 %{ endfor ~}
   - ufw allow 53 proto udp comment 'DNS if this node provides it'
   - ufw allow 123 proto udp comment 'NTP sync'
-  - ufw allow 9100/tcp comment 'Node exporter optional'
+%{ for network in management_networks ~}
+  - ufw allow from ${network} to any port 9100 proto tcp comment 'Node exporter from management'
+%{ endfor ~}
   - ufw --force enable
-
-# Initialize AIDE and enable services
-runcmd:
+  - ufw logging medium
+  - |
+    cat > /etc/pam.d/common-password << 'PAMEOF'
+    password  requisite     pam_pwquality.so retry=3 minlen=12 ucredit=-1 lcredit=-1 dcredit=-1 ocredit=0 difok=4 enforce_for_root
+    password  [success=2 default=ignore]  pam_unix.so obscure use_authtok try_first_pass sha512 rounds=500000
+    password  requisite     pam_pwhistory.so use_authtok remember=10 retry=3
+    password  requisite     pam_deny.so
+    password  required      pam_permit.so
+    PAMEOF
+  - chmod 0644 /etc/pam.d/common-password
   - systemctl disable --now snapd.seeded.service || true
   - apt-get purge -y snapd || true
   - update-grub || true
@@ -308,4 +322,4 @@ runcmd:
   - needrestart -r a || true
 
 final_message: |
-  CIS-style baseline applied. Check ssh access with your key before closing the old session.
+  CIS-style baseline applied. Check SSH access before closing the old session.

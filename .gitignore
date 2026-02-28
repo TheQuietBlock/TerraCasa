@@ -1,10 +1,23 @@
-# Terraform
+# Terraform state, variables and local configuration
 *.tfstate
 *.tfstate.*
 *.tfvars
 !*.tfvars.example
+terraform.tfvars
+
+# Override and local files (often contain credentials)
+overrides.tf
+_override.tf
+*.override.tf
+*.override.tf.json
+
+# Backend configuration and CLI credentials
 .terraform/
 .terraform.lock.hcl
+.terraform.rc
+terraform.rc
+
+# Crash logs
 crash.log
 crash.*.log
 
@@ -12,6 +25,9 @@ crash.*.log
 terraform.tfvars
 *.tfvars
 !terraform.tfvars.example
+
+# Generated cloud-init files (contain rendered secrets)
+.generated/
 
 # Terraform plan files
 *.tfplan
@@ -70,6 +86,12 @@ secrets/
 *.p8x
 *.p8y
 *.p8z
+
+# Password files or those containing the word "password" or similar
+*password*
+*passwd*
+*passphrase*
+*credentials*
 
 # Environment variables
 .env

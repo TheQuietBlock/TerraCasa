@@ -214,6 +214,14 @@ terraform import 'proxmox_vm_qemu.vms["server-name"]' VMID
 terraform state show 'proxmox_vm_qemu.vms["server-name"]'
 ```
 
+For immutable imported VMs (currently `101`, `111`, `120`), use the protected resource addresses:
+
+```powershell
+terraform import 'proxmox_vm_qemu.protected_vms["resolver"]' 101
+terraform import 'proxmox_vm_qemu.protected_vms["minecraft-java-srv002"]' 111
+terraform import 'proxmox_vm_qemu.protected_vms["Traefik"]' 120
+```
+
 ## Troubleshooting
 
 ### Common Issues

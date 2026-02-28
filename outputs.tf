@@ -2,7 +2,7 @@
 output "vms" {
   description = "Information about created VMs"
   value = {
-    for k, v in proxmox_vm_qemu.vms : k => {
+    for k, v in merge(proxmox_vm_qemu.vms, proxmox_vm_qemu.protected_vms) : k => {
       name        = v.name
       vmid        = v.vmid
       ip_address  = v.ipconfig0
@@ -19,8 +19,8 @@ output "environment_summary" {
   description = "Summary of the current environment"
   value = {
     environment = var.environment
-    vm_count    = length(proxmox_vm_qemu.vms)
-    vms         = keys(proxmox_vm_qemu.vms)
+    vm_count    = length(merge(proxmox_vm_qemu.vms, proxmox_vm_qemu.protected_vms))
+    vms         = keys(merge(proxmox_vm_qemu.vms, proxmox_vm_qemu.protected_vms))
   }
 }
 
@@ -30,7 +30,8 @@ output "network_info" {
   value = {
     vlans = var.vlan_configs
     vm_ips = {
-      for k, v in proxmox_vm_qemu.vms : k => v.ipconfig0
+      for k, v in merge(proxmox_vm_qemu.vms, proxmox_vm_qemu.protected_vms) : k => v.ipconfig0
     }
   }
+  sensitive = true
 }

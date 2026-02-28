@@ -19,13 +19,42 @@ variable "proxmox_token_secret" {
 variable "proxmox_tls_insecure" {
   description = "Skip TLS verification for Proxmox API"
   type        = bool
-  default     = true
+  default     = false
 }
 
 variable "proxmox_node" {
   description = "Proxmox node name"
   type        = string
   default     = "proxmox"
+}
+
+variable "proxmox_ssh_user" {
+  description = "SSH user for Proxmox host (used for cloud-init snippet uploads)"
+  type        = string
+  default     = "root"
+}
+
+variable "proxmox_ssh_password" {
+  description = "SSH password for Proxmox host"
+  type        = string
+  sensitive   = true
+}
+
+variable "proxmox_ssh_host" {
+  description = "Proxmox host IP for SSH connections"
+  type        = string
+}
+
+variable "snippets_storage" {
+  description = "Proxmox storage name for cloud-init snippets"
+  type        = string
+  default     = "local"
+}
+
+variable "snippets_path" {
+  description = "Filesystem path on Proxmox host for cloud-init snippets"
+  type        = string
+  default     = "/var/lib/vz/snippets"
 }
 
 variable "template_name" {
@@ -45,17 +74,18 @@ variable "storage_name" {
 variable "ssh_public_key" {
   description = "SSH public key for cloud-init"
   type        = string
+  default     = ""
+}
+
+variable "vm_password" {
+  description = "VM user password for cloud-init password SSH login"
+  type        = string
+  sensitive   = true
 }
 
 variable "vm_user" {
   description = "VM user name for cloud-init"
   type        = string
-}
-
-variable "vm_password" {
-  description = "VM user password for cloud-init"
-  type        = string
-  sensitive   = true
 }
 
 variable "management_networks" {
@@ -97,6 +127,13 @@ variable "vlan_configs" {
       gateway     = "192.168.xx.1"
       description = "Server network"
     }
+    web = {
+      vlan_id     = 100
+      subnet      = "192.168.xx.0/24"
+      subnet_cidr = "24"
+      gateway     = "192.168.xx.1"
+      description = "Web network"
+    }
   }
 }
 
@@ -106,11 +143,9 @@ variable "vm_ip_addresses" {
   type        = map(string)
   default = {
     # Example structure - replace with your actual values in terraform.tfvars
-    "prox-n-roll"           = "192.168.xx.10"
     "resolver-of-truth"     = "192.168.xx.53"
-    "minecraft-java-srv001" = "192.168.xx.50"
     "minecraft-java-srv002" = "192.168.xx.51"
     "port-and-order"        = "192.168.xx.80"
-    "sir-flows-a-lot"       = "192.168.xx.85"
+    "tesolver-and-order"    = "192.168.xx.10"
   }
 }

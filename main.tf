@@ -3,7 +3,15 @@ terraform {
   required_providers {
     proxmox = {
       source  = "Telmate/proxmox"
-      version = "3.0.2-rc04"
+      version = "3.0.2-rc07"
+    }
+    null = {
+      source  = "hashicorp/null"
+      version = "~> 3.0"
+    }
+    local = {
+      source  = "hashicorp/local"
+      version = "~> 2.0"
     }
   }
 }
@@ -15,9 +23,51 @@ provider "proxmox" {
   pm_tls_insecure     = var.proxmox_tls_insecure
 }
 
-# Create VLANs
+# Render cloud-init user-data for each VM
+resource "local_file" "cloud_init" {
+  for_each = local.managed_vms
+
+  content = templatefile("${path.module}/cloudinit/ubuntu-cloudinit.yaml", {
+    hostname            = each.value.name
+    vm_user             = var.vm_user
+    vm_password         = var.vm_password
+    ssh_public_key      = var.ssh_public_key
+    management_networks = var.management_networks
+  })
+  filename        = "${path.module}/.generated/cloud-init-${each.value.name}.yaml"
+  file_permission = "0600"
+}
+
+# Upload cloud-init snippets to Proxmox host
+resource "null_resource" "cloud_init_upload" {
+  for_each = local.managed_vms
+
+  triggers = {
+    content_hash = local_file.cloud_init[each.key].content_md5
+  }
+
+  connection {
+    type     = "ssh"
+    host     = var.proxmox_ssh_host
+    user     = var.proxmox_ssh_user
+    password = var.proxmox_ssh_password
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      "mkdir -p ${var.snippets_path}"
+    ]
+  }
+
+  provisioner "file" {
+    source      = local_file.cloud_init[each.key].filename
+    destination = "${var.snippets_path}/cloud-init-${each.value.name}.yaml"
+  }
+}
+
+# Create normally managed VMs
 resource "proxmox_vm_qemu" "vms" {
-  for_each = local.vms
+  for_each = local.managed_vms
 
   name        = each.value.name
   vmid        = each.value.vmid
@@ -55,29 +105,22 @@ resource "proxmox_vm_qemu" "vms" {
     storage = var.storage_name
   }
 
-  # EFI Disk for OVMF - will be created automatically with OVMF
-
   # Network Configuration - no VLAN tag for server network (VLAN 55)
   network {
     id     = 0
     model  = "virtio"
     bridge = "vmbr0"
-    # No tag needed for VLAN 55 (server network)
+    tag    = var.vlan_configs[each.value.vlan].vlan_id
   }
 
   # Cloud-init Configuration
-  ciuser     = var.vm_user
+  ciuser    = var.vm_user
   cipassword = var.vm_password
-  sshkeys    = var.ssh_public_key
-  ciupgrade  = true
+  sshkeys   = var.ssh_public_key
+  ciupgrade = true
 
-  # Custom cloud-init configuration rendered from template
-  cloudinit_custom = templatefile("${path.module}/cloudinit/ubuntu-cloudinit.yaml", {
-    hostname            = each.value.name
-    vm_user             = var.vm_user
-    ssh_public_key      = var.ssh_public_key
-    management_networks = var.management_networks
-  })
+  # Custom cloud-init user-data from uploaded snippet
+  cicustom = "user=${var.snippets_storage}:snippets/cloud-init-${each.value.name}.yaml"
 
   # IP Configuration - Use static IP from configuration
   ipconfig0 = "ip=${each.value.ip_address}/${var.vlan_configs[each.value.vlan].subnet_cidr},gw=${var.vlan_configs[each.value.vlan].gateway}"
@@ -102,11 +145,12 @@ resource "proxmox_vm_qemu" "vms" {
       network,
       # Disk configuration - don't modify existing disks
       disk,
-      # Cloud-init settings - don't change user/password/keys
+      # Cloud-init settings - don't change user/keys
       ciuser,
       cipassword,
       sshkeys,
       ipconfig0,
+      cicustom,
       # Template and cloning - don't change the base template
       clone,
       # VM ID - keep existing VMIDs
@@ -117,23 +161,11 @@ resource "proxmox_vm_qemu" "vms" {
       agent,
       define_connection_info,
       description,
-      onboot,
       target_nodes,
       smbios,
       # More attributes to prevent recreation
       boot,
       bootdisk,
-      current_node,
-      linked_vmid,
-      numa,
-      qemu_os,
-      reboot_required,
-      skip_ipv4,
-      skip_ipv6,
-      ssh_host,
-      ssh_port,
-      target_node,
-      vm_state,
       # CPU and memory blocks
       cpu,
       disks,
@@ -141,12 +173,94 @@ resource "proxmox_vm_qemu" "vms" {
       bios,
       machine
     ]
-    # Allow updates to cores and memory without recreation
-    # Don't prevent destroy - allow controlled updates
   }
 
   # Tags for environment and usage identification
   tags = "${each.value.environment},${each.value.usage}"
 
-  depends_on = []
+  depends_on = [null_resource.cloud_init_upload]
+}
+
+# Import and protect existing VMs that must remain immutable
+resource "proxmox_vm_qemu" "protected_vms" {
+  for_each = local.protected_vms
+
+  name        = each.value.name
+  vmid        = each.value.vmid
+  target_node = var.proxmox_node
+  clone       = var.template_name
+
+  # VM Configuration
+  memory = each.value.memory
+
+  # SeaBIOS Configuration (matches template)
+  bios    = "seabios"
+  machine = "pc-i440fx-6.1"
+
+  # CPU Configuration
+  cpu {
+    cores   = each.value.cores
+    sockets = 1
+    type    = "host"
+  }
+
+  # Disk Configuration - Primary disk on SCSI
+  disk {
+    slot     = "scsi0"
+    type     = "disk"
+    storage  = var.storage_name
+    size     = "32G"
+    iothread = true
+    discard  = true
+  }
+
+  # Cloud-init drive on IDE2
+  disk {
+    slot    = "ide2"
+    type    = "cloudinit"
+    storage = var.storage_name
+  }
+
+  # Network Configuration - no VLAN tag for server network (VLAN 55)
+  network {
+    id     = 0
+    model  = "virtio"
+    bridge = "vmbr0"
+    tag    = var.vlan_configs[each.value.vlan].vlan_id
+  }
+
+  # Cloud-init Configuration
+  ciuser    = var.vm_user
+  cipassword = var.vm_password
+  sshkeys   = var.ssh_public_key
+  ciupgrade = true
+
+  # Custom cloud-init user-data from uploaded snippet
+  cicustom = "user=${var.snippets_storage}:snippets/cloud-init-${each.value.name}.yaml"
+
+  # IP Configuration - Use static IP from configuration
+  ipconfig0 = "ip=${each.value.ip_address}/${var.vlan_configs[each.value.vlan].subnet_cidr},gw=${var.vlan_configs[each.value.vlan].gateway}"
+
+  # Boot order: SCSI disk first, then cloud-init, then network
+  boot = "order=scsi0;ide2;net0"
+
+  # Agent for better integration
+  agent         = 1
+  agent_timeout = 30
+
+  # SCSI Controller
+  scsihw = "virtio-scsi-pci"
+
+  # Timeout configuration
+  clone_wait = 30
+
+  lifecycle {
+    prevent_destroy = true
+    ignore_changes  = all
+  }
+
+  # Tags for environment and usage identification
+  tags = "${each.value.environment},${each.value.usage}"
+
+  depends_on = [null_resource.cloud_init_upload]
 }

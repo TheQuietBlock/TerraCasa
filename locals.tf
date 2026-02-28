@@ -1,18 +1,6 @@
 locals {
   # All servers consolidated with usage tags
   vms = {
-    automation = {
-      name        = "prox-n-roll"
-      vmid        = 100
-      cores       = 4
-      memory      = 2048
-      vlan        = "server"
-      ip_address  = var.vm_ip_addresses["prox-n-roll"]
-      os_type     = "ubuntu"
-      description = "Automation server"
-      environment = "production"
-      usage       = "automation"
-    }
     resolver = {
       name        = "resolver-of-truth"
       vmid        = 101
@@ -24,18 +12,6 @@ locals {
       description = "DNS resolver server"
       environment = "production"
       usage       = "dns"
-    }
-    minecraft-java-srv001 = {
-      name        = "minecraft-java-srv001"
-      vmid        = 110
-      cores       = 4
-      memory      = 8192
-      vlan        = "server"
-      ip_address  = var.vm_ip_addresses["minecraft-java-srv001"]
-      os_type     = "ubuntu"
-      description = "Minecraft server (Primary)"
-      environment = "production"
-      usage       = "gaming"
     }
     minecraft-java-srv002 = {
       name        = "minecraft-java-srv002"
@@ -49,18 +25,6 @@ locals {
       environment = "production"
       usage       = "gaming"
     }
-    n8n = {
-      name        = "sir-flows-a-lot"
-      vmid        = 115
-      cores       = 2
-      memory      = 2048
-      vlan        = "server"
-      ip_address  = var.vm_ip_addresses["sir-flows-a-lot"]
-      os_type     = "ubuntu"
-      description = "n8n automation server"
-      environment = "production"
-      usage       = "automation"
-    }
     Traefik = {
       name        = "port-and-order"
       vmid        = 120
@@ -73,6 +37,36 @@ locals {
       environment = "production"
       usage       = "automation"
     }
+    webserver = {
+      name        = "Cache-Me-Outside"
+      vmid        = 130
+      cores       = 2
+      memory      = 2048
+      vlan        = "web"
+      ip_address  = var.vm_ip_addresses["Cache-Me-Outside"]
+      os_type     = "ubuntu"
+      description = "Web server"
+      environment = "production"
+      usage       = "web"
+    }
+  }
+
+  # Existing VMs that must be imported but never changed by Terraform
+  protected_vm_keys = toset([
+    "resolver",
+    "minecraft-java-srv002",
+    "Traefik"
+  ])
+
+  # Split VM definitions into protected and normally managed groups
+  protected_vms = {
+    for k, v in local.vms : k => v
+    if contains(local.protected_vm_keys, k)
+  }
+
+  managed_vms = {
+    for k, v in local.vms : k => v
+    if !contains(local.protected_vm_keys, k)
   }
 
   # Common tags

@@ -8,17 +8,24 @@ environment = "production"  # or "acceptance"
 proxmox_api_url      = "https://192.168.xx.xx:8006/api2/json"  # Replace with your Proxmox IP
 proxmox_token_id     = "root@pam!terraform"                    # Replace with your token ID
 proxmox_token_secret = "your-token-secret-here"                # Replace with your token secret
-proxmox_tls_insecure = true
+proxmox_tls_insecure = false                                     # Set to true only for self-signed certs
 proxmox_node         = "proxmox"                               # Replace with your node name
+
+# Proxmox SSH (for cloud-init snippet uploads)
+proxmox_ssh_host     = "192.168.xx.xx"                          # Replace with your Proxmox IP
+proxmox_ssh_user     = "root"
+proxmox_ssh_password = "your-proxmox-root-password"             # Replace with your password
+snippets_storage     = "local"                                  # Proxmox storage with snippets content type
+snippets_path        = "/var/lib/vz/snippets"                   # Path on Proxmox for snippets
 
 # Template and Storage
 template_name = "ubuntu-cloudinit-template"                    # Replace with your template name
 storage_name  = "storage"                                      # Replace with your storage name
 
 # Cloud-init Configuration
-vm_user            = "your-username"                          # Replace with your username
-vm_password        = "your-secure-password"                   # Replace with your password
-ssh_public_key     = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAI..." # Replace with your SSH key
+vm_user            = "your-username"                           # Replace with your username
+vm_password        = "replace-with-a-strong-password"          # Replace with a strong password
+ssh_public_key     = ""                                        # Optional while key is unavailable
 
 # Allow SSH management access from these networks
 management_networks = [
@@ -42,15 +49,20 @@ vlan_configs = {
     gateway     = "192.168.xx.1"       # Replace with your server gateway
     description = "Server network"
   }
+  web = {
+    vlan_id     = 100
+    subnet      = "192.168.xx.0/24"
+    subnet_cidr = "24"
+    gateway     = "192.168.xx.1"
+    description = "Web network"
+  }
 }
 
 # VM IP Addresses
 # Assign static IPs to your VMs
 vm_ip_addresses = {
-  "prox-n-roll"           = "192.168.xx.10"  # Replace with your desired IP
   "resolver-of-truth"     = "192.168.xx.53"  # Replace with your desired IP
-  "minecraft-java-srv001" = "192.168.xx.50"  # Replace with your desired IP
   "minecraft-java-srv002" = "192.168.xx.51"  # Replace with your desired IP
   "port-and-order"        = "192.168.xx.80"  # Replace with your desired IP
-  "sir-flows-a-lot"       = "192.168.xx.85"  # Replace with your desired IP
+  "tesolver-and-order"    = "192.168.xx.10"
 }
