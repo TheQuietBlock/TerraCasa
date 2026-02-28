@@ -106,6 +106,7 @@ secrets/
 # Windows specific
 desktop.ini
 $RECYCLE.BIN/
+*.exe
 
 # MacOS specific
 .AppleDouble
