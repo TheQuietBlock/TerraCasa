@@ -1,287 +1,103 @@
-# TerraCasa Homelab Infrastructure
+# TerraCasa Homelab Terraform
 
-This Terraform project manages your homelab infrastructure on Proxmox VE with a simplified, consolidated approach using usage-based tagging.
+Terraform configuration for managing selected Proxmox VMs with cloud-init snippets and VLAN-aware networking.
 
-## Project Structure
+## What This Repository Manages
 
-```
+- Proxmox provider configuration and VM definitions
+- Cloud-init template rendering and snippet upload
+- Split VM handling:
+  - `proxmox_vm_qemu.vms` for normally managed VMs
+  - `proxmox_vm_qemu.protected_vms` for imported immutable VMs (`ignore_changes = all`)
+
+## Current VM Inventory
+
+| Key | Name | VMID | Network | Usage | Management Mode |
+|---|---|---:|---|---|---|
+| `resolver` | `resolver-of-truth` | `101` | server VLAN | dns | protected |
+| `minecraft-server` | `block-and-order` | `111` | server VLAN | gaming | protected |
+| `Traefik` | `port-and-order` | `120` | server VLAN | automation | protected |
+| `webserver` | `Cache-Me-Outside` | `130` | web VLAN | web | managed |
+
+## Network Model (Sanitized)
+
+- Home VLAN: `192.168.x.0/24`
+- Server VLAN: `192.168.x.0/24`
+- Web VLAN: `192.168.x.0/28`
+- VM addresses are provided through `vm_ip_addresses` in `terraform.tfvars`
+
+Do not commit real internal IP addresses or credentials to version control.
+
+## Project Layout
+
+```text
 TerraCasa/
 ├── cloudinit/
-│   └── ubuntu-cloudinit.yaml   # Cloud-init template
-├── main.tf                     # Main Terraform configuration
-├── variables.tf                # Variable definitions
-├── locals.tf                   # Server definitions with usage tags
-├── outputs.tf                  # Output definitions
-├── terraform.tfvars            # Configuration file
-└── README.md                   # This file
+│   └── ubuntu-cloudinit.yaml
+├── main.tf
+├── locals.tf
+├── variables.tf
+├── outputs.tf
+├── terraform.tfvars
+└── README.md
 ```
 
-## Server Configuration
-
-All servers are managed in a single configuration with usage-based tagging:
-
-| Server | VM ID | IP Address | Usage | Description |
-|--------|-------|------------|-------|-------------|
-| **prox-n-roll** | 100 | `192.168.xx.xx` | automation | Automation server |
-| **resolver-of-truth** | 101 | `192.168.xx.xx` | dns | DNS resolver server |
-| **minecraft-java-srv001** | 110 | `192.168.xx.xx` | gaming | Minecraft server (Primary) |
-| **minecraft-java-srv002** | 111 | `192.168.xx.xx` | gaming | Minecraft server (Secondary) |
-| **port-and-order** | 120 | `192.168.xx.xx` | automation | Traefik reverse proxy |
-| **sir-flows-a-lot** | 115 | `192.168.xx.xx` | automation | n8n automation server |
-
-### Usage Tags
-
-- **automation**: Infrastructure automation and management
-- **dns**: DNS resolution services
-- **gaming**: Gaming servers and applications
-
-## Prerequisites
-
-1. **Proxmox VE** running and accessible
-2. **Ubuntu Cloud-init Template** configured
-3. **Terraform** installed
-4. **Proxmox API Token** with appropriate permissions
-
-## Setup Instructions
-
-### 1. Configure Proxmox API Token
-
-1. In Proxmox web interface, go to **Datacenter** → **Permissions** → **API Tokens**
-2. Create a new token with:
-   - User: `terraform@pve` (or your preferred user)
-   - Token ID: `terraform-token`
-   - Privilege Separation: Enabled
-   - Expiration: Set as needed
-3. Note down the token ID and secret
-
-### 2. Configure Terraform
-
-1. Copy the example configuration:
-   ```powershell
-   Copy-Item terraform.tfvars.example terraform.tfvars
-   ```
-
-2. Edit `terraform.tfvars` with your values:
-   - **Proxmox API URL**: Replace `192.168.xx.xx` with your Proxmox server IP
-   - **Proxmox API credentials**: Replace with your actual token ID and secret
-   - **SSH public key**: Replace with your SSH public key
-   - **Network settings**: Update VLAN configurations with your network ranges
-   - **VM IP addresses**: Set your desired static IPs for each VM
-
-   **Important**: The example file contains placeholder values that must be replaced with your actual network configuration.
-
-### 3. Deploy Infrastructure
+## Quick Start
 
 ```powershell
-# Initialize Terraform
 terraform init
-
-# Review planned changes
 terraform plan
-
-# Apply changes
 terraform apply
 ```
 
-## Network Configuration
+Always run `terraform plan` first and inspect for unsafe actions.
 
-The infrastructure supports multiple VLANs for network segmentation:
+## Safe Change Rules
 
-- **Home Network**: `192.168.xx.xx/24` - General purpose network
-- **Server Network**: `192.168.xx.xx/24` - Infrastructure and services
+Safe in-place updates are typically:
 
-### VM IP Addresses
+- CPU cores
+- Memory
+- Tags
+- Description
 
-| Server | IP Address | Usage |
-|--------|------------|-------|
-| **prox-n-roll** | `192.168.xx.xx` | automation |
-| **resolver-of-truth** | `192.168.xx.xx` | dns |
-| **minecraft-java-srv001** | `192.168.xx.xx` | gaming |
-| **minecraft-java-srv002** | `192.168.xx.xx` | gaming |
-| **port-and-order** | `192.168.xx.xx` | automation |
-| **sir-flows-a-lot** | `192.168.xx.xx` | automation |
+Do **not** change existing VM identity/network primitives unless you are intentionally replacing infrastructure:
 
-VM IP addresses are configurable through the `vm_ip_addresses` variable in `terraform.tfvars`.
+- VMID
+- Name (depends on resource behavior; verify with plan)
+- IP configuration
+- VLAN/network config
+- Clone/template linkage
+- Disk layout
+- Cloud-init wiring
 
-### Configuration Structure
+## How VM Grouping Works
 
-The project uses a two-tier configuration approach:
+VMs are defined once in `locals.tf` under `local.vms`, then split into:
 
-1. **`variables.tf`**: Defines variable types and provides documentation defaults
-2. **`terraform.tfvars`**: Contains your actual values (gitignored for security)
+- `local.protected_vms` using `local.protected_vm_keys`
+- `local.managed_vms` for everything else
 
-**Example configuration structure:**
-```hcl
-# VLAN Configurations
-vlan_configs = {
-  home = {
-    vlan_id     = 50
-    subnet      = "192.168.xx.0/24"
-    subnet_cidr = "24"
-    gateway     = "192.168.xx.1"
-    description = "Home network"
-  }
-  server = {
-    vlan_id     = 55
-    subnet      = "192.168.xx.0/24"
-    subnet_cidr = "24"
-    gateway     = "192.168.xx.1"
-    description = "Server network"
-  }
-}
+If you rename a VM key in `local.vms`, update `protected_vm_keys` to match the new key.
 
-# VM IP Addresses
-vm_ip_addresses = {
-  "prox-n-roll"           = "192.168.xx.10"
-  "resolver-of-truth"     = "192.168.xx.53"
-  # ... more VMs
-}
-```
+## Import Existing VMs
 
-## Cloud-init Configuration
-
-The `cloudinit/ubuntu-cloudinit.yaml` template configures:
-- SSH key authentication
-- Firewall rules
-- System optimization
-- Network configuration
-- Dynamic management network allow-lists based on `management_networks`
-
-Update `management_networks` in your `terraform.tfvars` file to list the CIDR blocks that should be allowed to reach SSH and bypass Fail2ban throttling. When left empty the VM will only trust localhost by default.
-
-## Terraform Commands
-
-```powershell
-# Initialize Terraform
-terraform init
-
-# Plan changes
-terraform plan
-
-# Apply changes
-terraform apply
-
-# Destroy infrastructure
-terraform destroy
-
-# Show current state
-terraform show
-
-# List resources
-terraform state list
-```
-
-## Server Management
-
-### Adding New Servers
-
-1. Add server definition to `locals.tf` in the `vms` block
-2. Assign a unique VM ID
-3. Set appropriate usage tag
-4. Configure network and resource settings
-5. Run `terraform plan` to review changes
-6. Apply with `terraform apply`
-
-### Server Usage Tags
-
-Usage tags help organize and identify server purposes:
-
-```hcl
-# Example server definition
-automation = {
-  name           = "server-name"
-  vmid           = 200
-  cores          = 4
-  memory         = 4096
-  vlan           = "server"
-  ip_address     = var.vm_ip_addresses["server-name"]
-  os_type        = "ubuntu"
-  description    = "Server description"
-  environment    = "production"
-  usage          = "automation"  # Usage tag
-}
-```
-
-## Importing Existing Infrastructure
-
-If you have existing VMs that need to be managed by Terraform:
-
-```powershell
-# Import existing VM
-terraform import 'proxmox_vm_qemu.vms["server-name"]' VMID
-
-# Verify import
-terraform state show 'proxmox_vm_qemu.vms["server-name"]'
-```
-
-For immutable imported VMs (currently `101`, `111`, `120`), use the protected resource addresses:
+Example imports:
 
 ```powershell
 terraform import 'proxmox_vm_qemu.protected_vms["resolver"]' 101
-terraform import 'proxmox_vm_qemu.protected_vms["minecraft-java-srv002"]' 111
+terraform import 'proxmox_vm_qemu.protected_vms["minecraft-server"]' 111
 terraform import 'proxmox_vm_qemu.protected_vms["Traefik"]' 120
 ```
 
 ## Troubleshooting
 
-### Common Issues
-
-1. **API Connection Issues**
-   - Verify Proxmox API URL and credentials
-   - Check if `pm_tls_insecure = true` is set
-
-2. **Template Not Found**
-   - Ensure the Ubuntu cloud-init template exists
-   - Verify template name matches `template_name` variable
-
-3. **IP Address Conflicts**
-   - Check if IP addresses are already in use
-   - Verify VLAN configuration
-
-4. **SSH Key Issues**
-   - Ensure SSH public key is properly formatted
-   - Check cloud-init template configuration
-
-### Logs and Debugging
-
-```powershell
-# Enable debug logging
-$env:TF_LOG = "DEBUG"
-terraform apply
-
-# Check Terraform state
-terraform state show 'proxmox_vm_qemu.vms["server-name"]'
-```
-
-## Outputs
-
-The configuration provides several useful outputs:
-
-- **vms**: Complete VM information including usage tags
-- **environment_summary**: Environment overview
-- **network_info**: Network configuration details
+- Provider/API issues: verify Proxmox URL/token values and TLS settings
+- Cloud-init snippet issues: verify SSH access to Proxmox host and snippet path
+- Unexpected replacement in plan (`-/+`): stop and review before apply
 
 ## Security Notes
 
-- Store sensitive variables in environment variables or use Terraform Cloud
-- Regularly rotate Proxmox API tokens
-- Keep Terraform state files secure
-- Use strong passwords for cloud-init
-- Never commit sensitive information to version control
-
-## Contributing
-
-When making changes:
-1. Test configuration with `terraform plan` first
-2. Update documentation
-3. Follow Terraform best practices
-4. Use meaningful commit messages
-5. Ensure no sensitive information is included in commits
-
-## Best Practices
-
-- Use version control for all configuration files
-- Keep `terraform.tfvars` in `.gitignore` if it contains sensitive data
-- Use consistent naming conventions
-- Document any custom configurations
-- Regular backups of Terraform state files
+- Keep `terraform.tfvars` out of version control when it contains secrets
+- Rotate tokens/passwords regularly
+- Never commit full internal IP plans, passwords, or token secrets

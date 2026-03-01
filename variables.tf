@@ -144,8 +144,8 @@ variable "vm_ip_addresses" {
   default = {
     # Example structure - replace with your actual values in terraform.tfvars
     "resolver-of-truth"     = "192.168.xx.53"
-    "minecraft-java-srv002" = "192.168.xx.51"
+    "block-and-order"       = "192.168.xx.51"
     "port-and-order"        = "192.168.xx.80"
-    "tesolver-and-order"    = "192.168.xx.10"
+    "Cache-Me-Outside"      = "192.168.xx.10"
   }
 }

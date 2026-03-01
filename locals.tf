@@ -13,15 +13,15 @@ locals {
       environment = "production"
       usage       = "dns"
     }
-    minecraft-java-srv002 = {
-      name        = "minecraft-java-srv002"
+    minecraft-server = {
+      name        = "block-and-order"
       vmid        = 111
       cores       = 4
       memory      = 8192
       vlan        = "server"
-      ip_address  = var.vm_ip_addresses["minecraft-java-srv002"]
+      ip_address  = var.vm_ip_addresses["block-and-order"]
       os_type     = "ubuntu"
-      description = "Minecraft server (Secondary)"
+      description = "Minecraft server (Public)"
       environment = "production"
       usage       = "gaming"
     }
@@ -54,7 +54,7 @@ locals {
   # Existing VMs that must be imported but never changed by Terraform
   protected_vm_keys = toset([
     "resolver",
-    "minecraft-java-srv002",
+    "minecraft-server",
     "Traefik"
   ])
 

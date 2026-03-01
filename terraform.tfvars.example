@@ -62,7 +62,7 @@ vlan_configs = {
 # Assign static IPs to your VMs
 vm_ip_addresses = {
   "resolver-of-truth"     = "192.168.xx.53"  # Replace with your desired IP
-  "minecraft-java-srv002" = "192.168.xx.51"  # Replace with your desired IP
+  "block-and-order"       = "192.168.xx.51"  # Replace with your desired IP
   "port-and-order"        = "192.168.xx.80"  # Replace with your desired IP
-  "tesolver-and-order"    = "192.168.xx.10"
+  "Cache-Me-Outside"      = "192.168.xx.10"
 }

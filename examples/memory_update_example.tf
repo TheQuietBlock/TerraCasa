@@ -3,18 +3,18 @@
 
 # Step 1: Update the memory value in locals.tf
 # Change this:
-# minecraft-java-srv001 = {
-#   name           = "minecraft-java-srv001"
-#   vmid           = 110
+# webserver = {
+#   name           = "Cache-Me-Outside"
+#   vmid           = 130
 #   cores          = 4
 #   memory         = 8192  # <-- Change this value
 #   # ... rest unchanged
 # }
 
 # To this:
-# minecraft-java-srv001 = {
-#   name           = "minecraft-java-srv001"
-#   vmid           = 110
+# webserver = {
+#   name           = "Cache-Me-Outside"
+#   vmid           = 130
 #   cores          = 4
 #   memory         = 12288  # <-- Increased to 12GB
 #   # ... rest unchanged

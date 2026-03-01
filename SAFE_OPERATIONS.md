@@ -25,9 +25,9 @@ You can safely modify these attributes without recreating VMs:
 
 ```hcl
 # In locals.tf, update the memory value
-minecraft-java-srv001 = {
-  name           = "minecraft-java-srv001"
-  vmid           = 110
+webserver = {
+  name           = "Cache-Me-Outside"
+  vmid           = 130
   cores          = 4
   memory         = 12288  # Increased from 8192 to 12GB
   # ... rest unchanged
@@ -44,9 +44,9 @@ terraform apply # Apply memory increase
 
 ```hcl
 # In locals.tf, update the cores value
-minecraft-java-srv001 = {
-  name           = "minecraft-java-srv001"
-  vmid           = 110
+webserver = {
+  name           = "Cache-Me-Outside"
+  vmid           = 130
   cores          = 6  # Increased from 4 to 6
   memory         = 8192
   # ... rest unchanged
@@ -75,11 +75,10 @@ resource "proxmox_vm_qemu" "new_server" {
 
 ```hcl
 # In locals.tf, update tags
-minecraft-java-srv001 = {
+webserver = {
   # ... other config
   environment = "production"
-  # Add custom tags
-  custom_tags = ["minecraft", "gaming"]
+  usage       = "web"
 }
 ```
 
@@ -112,7 +111,7 @@ minecraft-java-srv001 = {
    terraform apply
    ```
 
-## 📋 Example: Adding Memory to Minecraft Server
+## 📋 Example: Adding Memory to Web Server
 
 ```powershell
 # 1. Edit locals.tf to increase memory
